@@ -6,8 +6,12 @@ mod commitment_scheme;
 mod homomorphic_commitment;
 #[macro_use]
 mod operations;
+#[cfg(feature = "swifft")]
+mod swifft;
 pub use commitment_scheme::*;
 pub use homomorphic_commitment::*;
+#[cfg(feature = "swifft")]
+pub use swifft::{SwifftCommitment, SwifftCommitmentScheme};
 
 /// Errors that can occur in commitment operations.
 #[derive(Debug, Error)]
