@@ -158,3 +158,22 @@ mod tests {
         Ok(())
     }
 }
+
+use super::traits::CommitmentScheme as CommitmentSchemeTrait;
+
+impl<R: Ring> CommitmentSchemeTrait for AjtaiCommitmentScheme<R> {
+    type Witness = [R];
+    type Commitment = Commitment<R>;
+
+    fn kappa(&self) -> usize {
+        AjtaiCommitmentScheme::kappa(self)
+    }
+
+    fn width(&self) -> usize {
+        AjtaiCommitmentScheme::width(self)
+    }
+
+    fn commit(&self, witness: &Self::Witness) -> Result<Self::Commitment, CommitmentError> {
+        AjtaiCommitmentScheme::commit(self, witness)
+    }
+}

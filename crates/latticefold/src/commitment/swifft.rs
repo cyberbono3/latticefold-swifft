@@ -1,7 +1,9 @@
 #![cfg(feature = "swifft")]
 
 use rand::RngCore;
-use swifft::{Block, Key, State, BLOCK_LEN, KEY_LEN};
+use swifft::{Block, Key, State, BLOCK_LEN, KEY_LEN, STATE_LEN};
+
+use super::{traits::CommitmentScheme as CommitmentSchemeTrait, CommitmentError};
 
 /// SWIFFT-backed commitment digest (currently a thin wrapper over `State`).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -63,5 +65,22 @@ impl SwifftCommitmentScheme {
         }
 
         SwifftCommitment { state }
+    }
+}
+
+impl CommitmentSchemeTrait for SwifftCommitmentScheme {
+    type Witness = [u8];
+    type Commitment = SwifftCommitment;
+
+    fn kappa(&self) -> usize {
+        STATE_LEN
+    }
+
+    fn width(&self) -> usize {
+        BLOCK_LEN
+    }
+
+    fn commit(&self, witness: &Self::Witness) -> Result<Self::Commitment, CommitmentError> {
+        Ok(self.commit_bytes(witness))
     }
 }

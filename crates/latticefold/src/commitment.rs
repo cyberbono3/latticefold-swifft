@@ -8,10 +8,12 @@ mod homomorphic_commitment;
 mod operations;
 #[cfg(feature = "swifft")]
 mod swifft;
+mod traits;
 pub use commitment_scheme::*;
 pub use homomorphic_commitment::*;
 #[cfg(feature = "swifft")]
 pub use swifft::{SwifftCommitment, SwifftCommitmentScheme};
+pub use traits::CommitmentScheme;
 
 /// Errors that can occur in commitment operations.
 #[derive(Debug, Error)]
