@@ -22,7 +22,9 @@ use self::{
 };
 use crate::{
     ark_base::*,
-    commitment::{AjtaiCommitmentScheme, Commitment, CommitmentError},
+    commitment::{
+        AjtaiCommitmentScheme, Commitment, CommitmentBackend, CommitmentError, CommitmentOutput,
+    },
     decomposition_parameters::DecompositionParams,
 };
 
@@ -389,6 +391,17 @@ impl<NTT: SuitableRing> Witness<NTT> {
         ajtai.commit_ntt(&self.f)
     }
 
+    /// Commit to the witness using a backend selector (Ajtai or SWIFFT).
+    pub fn commit_with_backend<P: DecompositionParams>(
+        &self,
+        backend: CommitmentBackend<'_, NTT>,
+    ) -> Result<CommitmentOutput<NTT>, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        backend.commit::<P>(self)
+    }
+
     /// Takes the `f_hat` value.
     ///
     /// Leaves the value in the struct as `None`.
@@ -454,7 +467,10 @@ pub mod tests {
     use cyclotomic_rings::rings::{
         BabyBearRingNTT, GoldilocksRingNTT, GoldilocksRingPoly, StarkRingNTT,
     };
-    use stark_rings::cyclotomic_ring::models::goldilocks::{Fq, Fq3};
+    use stark_rings::{
+        cyclotomic_ring::models::goldilocks::{Fq, Fq3},
+        Ring,
+    };
     #[cfg(feature = "swifft")]
     use swifft::STATE_LEN;
 
@@ -463,6 +479,7 @@ pub mod tests {
     use crate::commitment::SwifftCommitmentScheme;
     use crate::{
         arith::r1cs::{get_test_r1cs, get_test_z as r1cs_get_test_z},
+        commitment::{AjtaiCommitmentScheme, CommitmentBackend, CommitmentOutput},
         decomposition_parameters::test_params::{BabyBearDP, GoldilocksDP, StarkDP},
     };
 
@@ -587,5 +604,22 @@ pub mod tests {
         let scheme = SwifftCommitmentScheme::rand(&mut rng);
         let commit = wit.swifft_commit(&scheme).expect("commit should succeed");
         assert_eq!(commit.as_bytes().len(), STATE_LEN);
+    }
+
+    #[test]
+    fn backend_commit_returns_ajtai_variant() {
+        let mut rng = ark_std::test_rng();
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = AjtaiCommitmentScheme::rand(4, wit.f.len(), &mut rng);
+        let backend = CommitmentBackend::Ajtai(&scheme);
+        let result = wit
+            .commit_with_backend::<GoldilocksDP>(backend)
+            .expect("commit succeeds");
+
+        match result {
+            CommitmentOutput::Ajtai(cm) => assert_eq!(cm.len(), scheme.kappa()),
+            #[cfg(feature = "swifft")]
+            CommitmentOutput::Swifft(_) => panic!("expected Ajtai commitment"),
+        }
     }
 }

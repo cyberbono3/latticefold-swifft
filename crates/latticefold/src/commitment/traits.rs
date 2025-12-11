@@ -2,7 +2,7 @@
 ///
 /// It is intentionally lightweight: width/kappa are informational and may be
 /// interpreted differently by concrete schemes (e.g. Ajtai uses them for
-/// dimension checks; SWIFFT treats them as parameter hints).
+/// dimension checks; SWIFFT treats them as parameter hints/hashes).
 pub trait CommitmentScheme {
     type Witness;
     type Commitment;
