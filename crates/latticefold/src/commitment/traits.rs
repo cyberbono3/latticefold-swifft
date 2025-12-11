@@ -4,7 +4,7 @@
 /// interpreted differently by concrete schemes (e.g. Ajtai uses them for
 /// dimension checks; SWIFFT treats them as parameter hints/hashes).
 pub trait CommitmentScheme {
-    type Witness;
+    type Witness: ?Sized;
     type Commitment;
 
     /// Number of rows / output length.

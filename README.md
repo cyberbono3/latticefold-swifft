@@ -41,7 +41,7 @@ Available packages:
 - `latticefold-plus`: an improved version of LatticeFold. Currently a work-in-progress implementation. See [more](latticefold-plus/README.md). 
 - `cyclotomic-rings`: contains the trait definition of a ring suitable to be used in the LatticeFold protocol, a few ready-to-use rings and short challenge set machinery.
 - Optional: feature-gated SWIFFT hashing helpers and example (`examples/swifft.rs`) to hash witnesses instead of using Ajtai commitments. Enable with `--features swifft`.
-- Performance notes for commitment backends (Ajtai vs SWIFFT) live in `docs/performance-commitments.md`.
+- Micro-benchmark notes for Ajtai vs SWIFFT commitments: `docs/performance-commitments.md`.
 
 ## Performance report
 The performance report for this library can be found [here](https://nethermind.notion.site/Latticefold-and-lattice-based-operations-performance-report-153360fc38d080ac930cdeeffed69559).
