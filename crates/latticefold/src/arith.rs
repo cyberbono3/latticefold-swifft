@@ -332,6 +332,19 @@ impl<NTT: SuitableRing> Witness<NTT> {
         Ok(buf)
     }
 
+    /// Commit to the witness using SWIFFT by hashing its serialized form.
+    #[cfg(feature = "swifft")]
+    pub fn swifft_commit(
+        &self,
+        scheme: &crate::commitment::SwifftCommitmentScheme,
+    ) -> Result<crate::commitment::SwifftCommitment, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        let bytes = self.serialize_witness_bytes()?;
+        Ok(scheme.commit_bytes(&bytes))
+    }
+
     /// Reconstruct the original CCS witness from the Ajtai witness
     ///
     /// Assume that Ajtai witness has bound B.
@@ -442,8 +455,12 @@ pub mod tests {
         BabyBearRingNTT, GoldilocksRingNTT, GoldilocksRingPoly, StarkRingNTT,
     };
     use stark_rings::cyclotomic_ring::models::goldilocks::{Fq, Fq3};
+    #[cfg(feature = "swifft")]
+    use swifft::STATE_LEN;
 
     use super::*;
+    #[cfg(feature = "swifft")]
+    use crate::commitment::SwifftCommitmentScheme;
     use crate::{
         arith::r1cs::{get_test_r1cs, get_test_z as r1cs_get_test_z},
         decomposition_parameters::test_params::{BabyBearDP, GoldilocksDP, StarkDP},
@@ -560,5 +577,15 @@ pub mod tests {
 
         assert!(recreated_witness.check_data::<StarkDP>());
         assert_eq!(recreated_witness, random_witness);
+    }
+
+    #[cfg(feature = "swifft")]
+    #[test]
+    fn swifft_commit_roundtrip_bytes() {
+        let mut rng = ark_std::test_rng();
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = SwifftCommitmentScheme::rand(&mut rng);
+        let commit = wit.swifft_commit(&scheme).expect("commit should succeed");
+        assert_eq!(commit.as_bytes().len(), STATE_LEN);
     }
 }

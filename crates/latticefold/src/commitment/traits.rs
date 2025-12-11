@@ -12,5 +12,8 @@ pub trait CommitmentScheme {
     /// Number of columns / expected witness length, if applicable.
     fn width(&self) -> usize;
     /// Commit to a witness.
-    fn commit(&self, witness: &Self::Witness) -> Result<Self::Commitment, crate::commitment::CommitmentError>;
+    fn commit(
+        &self,
+        witness: &Self::Witness,
+    ) -> Result<Self::Commitment, crate::commitment::CommitmentError>;
 }
