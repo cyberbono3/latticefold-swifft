@@ -34,11 +34,23 @@ You can adjust sizes by editing:
 
 ## Recording results
 
-Capture the Criterion mean/median/stddev from the console output. A simple table template:
+Latest runs (Criterion means) for quick reference:
 
-| bench                 | size    | mean time | std dev | notes |
-|-----------------------|---------|-----------|---------|-------|
-| ajtai_commit_ntt      | N=256   | _fill_    | _fill_  | KAPPA=4 |
-| swifft_commit_bytes   | 1024 B  | _fill_    | _fill_  | `--features swifft` |
+| bench                 | size   | mean time | notes                      |
+|-----------------------|--------|-----------|----------------------------|
+| ajtai_commit_ntt      | N=64   | 43.7 µs   | KAPPA=4                    |
+| ajtai_commit_ntt      | N=256  | 175.0 µs  | KAPPA=4                    |
+| ajtai_commit_ntt      | N=1024 | 699.0 µs  | KAPPA=4                    |
+| swifft_commit_bytes   | 56 B   | 31.1 µs   | `--features swifft`        |
+| swifft_commit_bytes   | 256 B  | 194.5 µs  | `--features swifft`        |
+| swifft_commit_bytes   | 1024 B | 843.0 µs  | `--features swifft`        |
 
-Include machine details (CPU, OS, Rust toolchain) for reproducibility.
+Replace or append with your own runs; capture mean/median/stddev from Criterion output.
+
+
+Test machine (for the numbers above):
+- OS: `Darwin 25.1.0 arm64`
+- CPU: 
+- Rust: `rustc 1.87.0-nightly (f4a216d28 2025-03-02)`
+
+Include machine details (CPU, OS, Rust toolchain) for reproducibility when recording new runs.

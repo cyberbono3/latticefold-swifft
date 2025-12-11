@@ -22,15 +22,18 @@ fn bench_ajtai(c: &mut Criterion) {
 
     let mut rng = ark_std::test_rng();
     const KAPPA: usize = 4;
-    const N: usize = 256;
-    let witness: Vec<_> = (0..N)
-        .map(|_| cyclotomic_rings::rings::GoldilocksRingNTT::rand(&mut rng))
-        .collect();
-    let scheme = AjtaiCommitmentScheme::rand(KAPPA, N, &mut rng);
+    const SIZES: &[usize] = &[64, 256, 1024];
 
-    c.bench_with_input(BenchmarkId::new("ajtai_commit_ntt", N), &N, |b, _| {
-        b.iter(|| scheme.commit_ntt(&witness).unwrap());
-    });
+    for &n in SIZES {
+        let witness: Vec<_> = (0..n)
+            .map(|_| cyclotomic_rings::rings::GoldilocksRingNTT::rand(&mut rng))
+            .collect();
+        let scheme = AjtaiCommitmentScheme::rand(KAPPA, n, &mut rng);
+
+        c.bench_with_input(BenchmarkId::new("ajtai_commit_ntt", n), &n, |b, _| {
+            b.iter(|| scheme.commit_ntt(&witness).unwrap());
+        });
+    }
 }
 
 #[cfg(feature = "swifft")]
@@ -45,18 +48,21 @@ fn bench_swifft(c: &mut Criterion) {
     }
 
     let mut rng = rand::thread_rng();
-    const BYTES_LEN: usize = 1024;
-    let mut data = vec![0u8; BYTES_LEN];
-    rng.fill_bytes(&mut data);
-    let scheme = SwifftCommitmentScheme::rand(&mut rng);
+    const BYTES_LEN: &[usize] = &[56, 256, 1024];
 
-    c.bench_with_input(
-        BenchmarkId::new("swifft_commit_bytes", BYTES_LEN),
-        &BYTES_LEN,
-        |b, _| {
-            b.iter(|| scheme.commit_bytes(&data));
-        },
-    );
+    for &len in BYTES_LEN {
+        let mut data = vec![0u8; len];
+        rng.fill_bytes(&mut data);
+        let scheme = SwifftCommitmentScheme::rand(&mut rng);
+
+        c.bench_with_input(
+            BenchmarkId::new("swifft_commit_bytes", len),
+            &len,
+            |b, _| {
+                b.iter(|| scheme.commit_bytes(&data));
+            },
+        );
+    }
 }
 
 #[cfg(not(feature = "swifft"))]
