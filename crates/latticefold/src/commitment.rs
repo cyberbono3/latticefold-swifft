@@ -7,9 +7,11 @@ mod commitment_scheme;
 mod homomorphic_commitment;
 #[macro_use]
 mod operations;
+mod backend;
 #[cfg(feature = "swifft")]
 mod swifft;
 mod traits;
+pub use backend::{CommitmentBackend, CommitmentOutput};
 pub use commitment_scheme::*;
 pub use homomorphic_commitment::*;
 #[cfg(feature = "swifft")]
