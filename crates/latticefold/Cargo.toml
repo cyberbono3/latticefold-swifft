@@ -98,3 +98,7 @@ harness = false
 [[bench]]
 name = "swifft"
 harness = false
+
+[[bench]]
+name = "commit_backend"
+harness = false

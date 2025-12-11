@@ -1,3 +1,5 @@
+use std::env;
+
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use latticefold::{
     arith::Witness,
@@ -5,7 +7,18 @@ use latticefold::{
     decomposition_parameters::test_params::GoldilocksDP,
 };
 
+fn should_run_backend_bench() -> bool {
+    match env::var("BACKEND_BENCH").or_else(|_| env::var("BACKEND")) {
+        Ok(flag) if flag == "0" => false,
+        _ => true,
+    }
+}
+
 fn bench_ajtai_backend(c: &mut Criterion) {
+    if !should_run_backend_bench() {
+        return;
+    }
+
     let mut rng = ark_std::test_rng();
     let w_len = 1 << 8;
     let witness = Witness::<cyclotomic_rings::rings::GoldilocksRingNTT>::rand::<_, GoldilocksDP>(
@@ -29,6 +42,9 @@ fn bench_ajtai_backend(c: &mut Criterion) {
 
 #[cfg(feature = "swifft")]
 fn bench_swifft_backend(c: &mut Criterion) {
+    if !should_run_backend_bench() {
+        return;
+    }
     if let Ok(flag) = std::env::var("SWIFFT_BENCH") {
         if flag == "0" {
             return;
