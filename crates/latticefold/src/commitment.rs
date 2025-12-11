@@ -1,5 +1,6 @@
 //! Provides utility for committing to witnesses.
 
+use ark_serialize::SerializationError;
 use thiserror::Error;
 
 mod commitment_scheme;
@@ -29,4 +30,7 @@ pub enum CommitmentError {
     /// An Ajtai matrix should have size commitment_length x witness_length.
     #[error("Ajtai matrix has dimensions: {0}x{1}, expected: {2}x{3}")]
     WrongAjtaiMatrixDimensions(usize, usize, usize, usize),
+    /// Serialization error while preparing a commitment input.
+    #[error("serialization error: {0}")]
+    Serialization(#[from] SerializationError),
 }

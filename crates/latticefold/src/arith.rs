@@ -317,6 +317,21 @@ impl<NTT: SuitableRing> Witness<NTT> {
         Self::from_f::<P>(f.into())
     }
 
+    /// Serialize the CCS witness (`w_ccs`) for SWIFFT hashing.
+    #[cfg(feature = "swifft")]
+    pub fn serialize_witness_bytes(&self) -> Result<Vec<u8>, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        use ark_serialize::CanonicalSerialize;
+
+        let mut buf = Vec::new();
+        for w in &self.w_ccs {
+            w.serialize_compressed(&mut buf)?;
+        }
+        Ok(buf)
+    }
+
     /// Reconstruct the original CCS witness from the Ajtai witness
     ///
     /// Assume that Ajtai witness has bound B.

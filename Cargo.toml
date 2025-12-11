@@ -32,7 +32,7 @@ stark-rings-linalg = { git = "https://github.com/NethermindEth/stark-rings.git",
 stark-rings-poly = { git = "https://github.com/NethermindEth/stark-rings.git", branch = "main", default-features = false }
 thiserror = { version = "2.0.3", default-features = false }
 toml = "0.8.19"
-swifft = { path = "../../cyberbono3/swifft" }
+swifft = { git = "https://github.com/cyberbono3/swifft" }
 [workspace.metadata.docs.rs]
 # To build locally, use 
 # RUSTDOCFLAGS="--html-in-header docs-header.html" cargo doc --no-deps --document-private-items --open

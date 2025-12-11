@@ -1,5 +1,6 @@
 #![cfg(feature = "swifft")]
 
+use ark_serialize::CanonicalSerialize;
 use rand::RngCore;
 use swifft::{Block, Key, State, BLOCK_LEN, KEY_LEN, STATE_LEN};
 
@@ -65,6 +66,28 @@ impl SwifftCommitmentScheme {
         }
 
         SwifftCommitment { state }
+    }
+
+    /// Commit to an object that implements `CanonicalSerialize` by serializing it.
+    pub fn commit_serialized<S: CanonicalSerialize>(
+        &self,
+        serializable: &S,
+    ) -> Result<SwifftCommitment, CommitmentError> {
+        let mut buf = Vec::new();
+        serializable.serialize_compressed(&mut buf)?;
+        Ok(self.commit_bytes(&buf))
+    }
+
+    /// Convenience helper to commit to a slice of serializable items.
+    pub fn commit_serialized_slice<S: CanonicalSerialize>(
+        &self,
+        slice: &[S],
+    ) -> Result<SwifftCommitment, CommitmentError> {
+        let mut buf = Vec::new();
+        for item in slice {
+            item.serialize_compressed(&mut buf)?;
+        }
+        Ok(self.commit_bytes(&buf))
     }
 }
 

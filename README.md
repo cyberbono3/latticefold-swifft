@@ -10,6 +10,8 @@ A proof-of-concept implementation of the LatticeFold and LatticeFold+ folding sc
 To run the benchmarks on your local machine, simply execute `cargo bench`. This will take around 48 hours.
 Use `cargo bench --bench` to measure relevant parts of the protocol as well as the Ajtai commitment scheme, and comment the prime fields you don't want to measure.
 
+An experimental SWIFFT-backed commitment hashing path is available behind the `swifft` feature flag. Enable it (and optionally `swifft-parallel`) to run the SWIFFT benches: `cargo bench --bench swifft --features swifft`.
+
 ## Building
 
 The [rust-toolchain](https://github.com/NethermindEth/latticefold/blob/main/rust-toolchain) file pins the version of the Rust toolchain, which the LatticeFold library builds with, to the specific version `nightly-2025-03-06`.

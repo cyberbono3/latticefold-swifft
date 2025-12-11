@@ -94,3 +94,7 @@ harness = false
 [[bench]]
 name = "e2e"
 harness = false
+
+[[bench]]
+name = "swifft"
+harness = false
