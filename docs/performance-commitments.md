@@ -32,13 +32,25 @@ You can adjust sizes by editing:
 - Ajtai: `KAPPA`/`N` in `crates/latticefold/benches/commit_backend.rs`.
 - SWIFFT bytes: `BYTES_LEN` in `commit_backend.rs` and the sizes array in `benches/swifft.rs`.
 
-## Recording results
+## Recording results Ajtai + SWIFFT (enable feature)
+
+Latest runs (Criterion means):
+
+| bench                 | size   | mean time | notes                      |
+|-----------------------|--------|-----------|----------------------------|
+| ajtai_commit_ntt      | N=64   | 43.7 µs   | KAPPA=4                    |
+| ajtai_commit_ntt      | N=256  | 175.0 µs  | KAPPA=4                    |
+| ajtai_commit_ntt      | N=1024 | 699.0 µs  | KAPPA=4                    |
+| swifft_commit_bytes   | 56 B   | 31.1 µs   | `--features swifft`        |
+| swifft_commit_bytes   | 256 B  | 194.5 µs  | `--features swifft`        |
+| swifft_commit_bytes   | 1024 B | 843.0 µs  | `--features swifft`        |
+
 
 
 
 Test machine (for the numbers above):
 - OS: `Darwin 25.1.0 arm64`
-- CPU: Apple M1
+- CPU: Apple Silicon (T6000-class; brand string blocked by sandbox)
 - Rust: `rustc 1.87.0-nightly (f4a216d28 2025-03-02)`
 
 Include machine details (CPU, OS, Rust toolchain) for reproducibility when recording new runs.
