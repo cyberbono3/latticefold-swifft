@@ -19,3 +19,5 @@ jobs:
       run: cargo test --workspace --verbose --no-run
     - name: Run tests
       run: cargo test --workspace --verbose
+    - name: Run tests (swifft)
+      run: cargo test --workspace --verbose --features swifft

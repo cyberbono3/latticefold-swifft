@@ -3,7 +3,9 @@
 
 This repo ships lightweight Criterion benches to get a quick feel for commitment throughput:
 - `commit_backend`: compares Ajtai `commit_ntt` on a small witness vs. SWIFFT byte hashing (feature-gated).
+- `commit_witness`: compares Ajtai witness commit vs. SWIFFT hashing of serialized witness bytes.
 - `swifft`: exercises SWIFFT byte commits at a few sizes.
+- `swifft_backend`: commits a witness via `CommitmentBackend::Swifft` and absorbs into a transcript.
 
 These benches are deliberately small/fast; they do **not** reflect full protocol workloads.
 
@@ -27,6 +29,11 @@ Ajtai + SWIFFT (enable feature):
 BACKEND_BENCH=1 SWIFFT_BENCH=1 cargo bench --features swifft --bench commit_backend -- --warm-up-time 1 --measurement-time 3
 ```
 
+Ajtai + SWIFFT witness-aligned:
+```bash
+BACKEND_BENCH=1 SWIFFT_BENCH=1 cargo bench --features swifft --bench commit_witness -- --warm-up-time 1 --measurement-time 3
+```
+
 SWIFFT-only microbench:
 ```bash
 SWIFFT_BENCH=1 cargo bench --features swifft --bench swifft -- --warm-up-time 1 --measurement-time 3
@@ -44,6 +51,8 @@ Environment flags:
 You can adjust sizes by editing:
 - Ajtai: `KAPPA`/`N` in `crates/latticefold/benches/commit_backend.rs`.
 - SWIFFT bytes: `BYTES_LEN` in `commit_backend.rs` and the sizes array in `benches/swifft.rs`.
+- SWIFFT backend sizes: `SIZES` in `crates/latticefold/benches/swifft_backend.rs`.
+- Witness commit sizes: `SIZES` in `crates/latticefold/benches/commit_witness.rs`.
 
 ## Recording results Ajtai + SWIFFT (enable feature)
 
@@ -57,6 +66,15 @@ Latest runs (Criterion means):
 | swifft_commit_bytes   | 56 B   | 31.1 µs   | `--features swifft`        |
 | swifft_commit_bytes   | 256 B  | 194.5 µs  | `--features swifft`        |
 | swifft_commit_bytes   | 1024 B | 843.0 µs  | `--features swifft`        |
+| swifft_backend_commit_absorb | N=64   | 10.79 ms | commit + absorb           |
+| swifft_backend_commit_absorb | N=256  | 43.03 ms | commit + absorb           |
+| swifft_backend_commit_absorb | N=1024 | 170.53 ms | commit + absorb          |
+| ajtai_commit_witness  | N=64   | 224.79 µs | witness commit            |
+| ajtai_commit_witness  | N=256  | 897.17 µs | witness commit            |
+| ajtai_commit_witness  | N=1024 | 3.62 ms  | witness commit            |
+| swifft_commit_witness_bytes | N=64   | 10.71 ms | hash witness bytes       |
+| swifft_commit_witness_bytes | N=256  | 42.34 ms | hash witness bytes       |
+| swifft_commit_witness_bytes | N=1024 | 169.12 ms | hash witness bytes      |
 
 
 

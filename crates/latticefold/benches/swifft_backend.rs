@@ -1,6 +1,6 @@
 #![cfg(feature = "swifft")]
 
-use std::env;
+use std::{env, time::Duration};
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use latticefold::{
@@ -68,5 +68,12 @@ fn bench_swifft_backend(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_swifft_backend);
+criterion_group! {
+    name = benches;
+    config = Criterion::default()
+        .warm_up_time(Duration::from_secs(1))
+        .measurement_time(Duration::from_secs(10))
+        .sample_size(20);
+    targets = bench_swifft_backend
+}
 criterion_main!(benches);

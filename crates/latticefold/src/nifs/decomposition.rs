@@ -13,7 +13,7 @@ use self::utils::{decompose_B_vec_into_k_vec, decompose_big_vec_into_k_vec_and_c
 use crate::{
     arith::{error::CSError, utils::mat_vec_mul, Witness, CCS, LCCCS},
     ark_base::*,
-    commitment::{AjtaiCommitmentScheme, Commitment, CommitmentError},
+    commitment::{AjtaiCommitmentScheme, Commitment, CommitmentDigestRef, CommitmentError},
     decomposition_parameters::DecompositionParams,
     nifs::error::DecompositionError,
     transcript::Transcript,
@@ -64,7 +64,7 @@ impl<NTT: SuitableRing, T: Transcript<NTT>> DecompositionProver<NTT, T>
 
         for (((x, y), u), v) in x_s.iter().zip(&y_s).zip(&u_s).zip(&v_s) {
             transcript.absorb_slice(x);
-            transcript.absorb_slice(y.as_ref());
+            CommitmentDigestRef::Ajtai(y).absorb_into(transcript);
             transcript.absorb_slice(u);
             transcript.absorb_slice(v);
 
@@ -107,7 +107,7 @@ impl<NTT: OverField, T: Transcript<NTT>> DecompositionVerifier<NTT, T>
             .zip(&proof.v_s)
         {
             transcript.absorb_slice(x);
-            transcript.absorb_slice(y.as_ref());
+            CommitmentDigestRef::Ajtai(y).absorb_into(transcript);
             transcript.absorb_slice(u);
             transcript.absorb_slice(v);
 
