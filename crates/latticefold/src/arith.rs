@@ -23,7 +23,7 @@ use self::{
 use crate::{
     ark_base::*,
     commitment::{
-        AjtaiCommitmentScheme, Commitment, CommitmentBackend, CommitmentError, CommitmentOutput,
+        AjtaiCommitmentScheme, Commitment, CommitmentBackend, CommitmentDigest, CommitmentError,
     },
     decomposition_parameters::DecompositionParams,
 };
@@ -395,7 +395,7 @@ impl<NTT: SuitableRing> Witness<NTT> {
     pub fn commit_with_backend<P: DecompositionParams>(
         &self,
         backend: CommitmentBackend<'_, NTT>,
-    ) -> Result<CommitmentOutput<NTT>, CommitmentError>
+    ) -> Result<CommitmentDigest<NTT>, CommitmentError>
     where
         NTT: ark_serialize::CanonicalSerialize,
     {
@@ -479,7 +479,7 @@ pub mod tests {
     use crate::commitment::SwifftCommitmentScheme;
     use crate::{
         arith::r1cs::{get_test_r1cs, get_test_z as r1cs_get_test_z},
-        commitment::{AjtaiCommitmentScheme, CommitmentBackend, CommitmentOutput},
+        commitment::{AjtaiCommitmentScheme, CommitmentBackend, CommitmentDigest},
         decomposition_parameters::test_params::{BabyBearDP, GoldilocksDP, StarkDP},
     };
 
@@ -617,9 +617,9 @@ pub mod tests {
             .expect("commit succeeds");
 
         match result {
-            CommitmentOutput::Ajtai(cm) => assert_eq!(cm.len(), scheme.kappa()),
+            CommitmentDigest::Ajtai(cm) => assert_eq!(cm.len(), scheme.kappa()),
             #[cfg(feature = "swifft")]
-            CommitmentOutput::Swifft(_) => panic!("expected Ajtai commitment"),
+            CommitmentDigest::Swifft(_) => panic!("expected Ajtai commitment"),
         }
     }
 }
