@@ -46,6 +46,10 @@ impl<R: OverField, CS> Transcript<R> for PoseidonTranscript<R, CS> {
         );
     }
 
+    fn absorb_bytes(&mut self, bytes: &[u8]) {
+        self.sponge.absorb(&bytes);
+    }
+
     fn get_challenge(&mut self) -> R::BaseRing {
         let extension_degree = R::BaseRing::extension_degree();
         let c = self

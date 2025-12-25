@@ -7,6 +7,13 @@ This repo ships lightweight Criterion benches to get a quick feel for commitment
 
 These benches are deliberately small/fast; they do **not** reflect full protocol workloads.
 
+## Backend notes
+
+- Ajtai commitments remain the homomorphic commitment used in protocol folding.
+- SWIFFT is exposed as a binding digest via `CommitmentDigest` and is feature-gated.
+- SWIFFT witness hashing is domain-separated (ring type name, decomposition params, witness length).
+- Use `CommitmentDigest::absorb_into` when you need backend-agnostic transcript absorption.
+
 ## How to run
 
 Ajtai only:

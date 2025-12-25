@@ -321,13 +321,27 @@ impl<NTT: SuitableRing> Witness<NTT> {
 
     /// Serialize the CCS witness (`w_ccs`) for SWIFFT hashing.
     #[cfg(feature = "swifft")]
-    pub fn serialize_witness_bytes(&self) -> Result<Vec<u8>, CommitmentError>
+    pub fn serialize_witness_bytes<P: DecompositionParams>(
+        &self,
+    ) -> Result<Vec<u8>, CommitmentError>
     where
         NTT: ark_serialize::CanonicalSerialize,
     {
         use ark_serialize::CanonicalSerialize;
 
         let mut buf = Vec::new();
+        buf.extend_from_slice(b"latticefold:swifft:witness:v1");
+
+        let ring_name = core::any::type_name::<NTT>();
+        buf.extend_from_slice(&(ring_name.len() as u64).to_le_bytes());
+        buf.extend_from_slice(ring_name.as_bytes());
+
+        buf.extend_from_slice(&P::B.to_le_bytes());
+        buf.extend_from_slice(&(P::L as u64).to_le_bytes());
+        buf.extend_from_slice(&(P::B_SMALL as u64).to_le_bytes());
+        buf.extend_from_slice(&(P::K as u64).to_le_bytes());
+        buf.extend_from_slice(&(self.w_ccs.len() as u64).to_le_bytes());
+
         for w in &self.w_ccs {
             w.serialize_compressed(&mut buf)?;
         }
@@ -336,14 +350,14 @@ impl<NTT: SuitableRing> Witness<NTT> {
 
     /// Commit to the witness using SWIFFT by hashing its serialized form.
     #[cfg(feature = "swifft")]
-    pub fn swifft_commit(
+    pub fn swifft_commit<P: DecompositionParams>(
         &self,
         scheme: &crate::commitment::SwifftCommitmentScheme,
     ) -> Result<crate::commitment::SwifftCommitment, CommitmentError>
     where
         NTT: ark_serialize::CanonicalSerialize,
     {
-        let bytes = self.serialize_witness_bytes()?;
+        let bytes = self.serialize_witness_bytes::<P>()?;
         Ok(scheme.commit_bytes(&bytes))
     }
 
@@ -602,7 +616,9 @@ pub mod tests {
         let mut rng = ark_std::test_rng();
         let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
         let scheme = SwifftCommitmentScheme::rand(&mut rng);
-        let commit = wit.swifft_commit(&scheme).expect("commit should succeed");
+        let commit = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
         assert_eq!(commit.as_bytes().len(), STATE_LEN);
     }
 

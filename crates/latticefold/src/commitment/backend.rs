@@ -26,7 +26,9 @@ impl<'a, NTT: SuitableRing> CommitmentBackend<'a, NTT> {
         match self {
             Self::Ajtai(scheme) => Ok(CommitmentDigest::Ajtai(witness.commit::<P>(scheme)?)),
             #[cfg(feature = "swifft")]
-            Self::Swifft(scheme) => Ok(CommitmentDigest::Swifft(witness.swifft_commit(scheme)?)),
+            Self::Swifft(scheme) => {
+                Ok(CommitmentDigest::Swifft(witness.swifft_commit::<P>(scheme)?))
+            }
         }
     }
 }

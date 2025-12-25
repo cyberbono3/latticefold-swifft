@@ -1,15 +1,18 @@
 //! Minimal example showing how to hash a witness with SWIFFT.
 
+#[cfg(feature = "swifft")]
 use ark_std::test_rng;
+#[cfg(feature = "swifft")]
 use latticefold::{
     arith::Witness, commitment::SwifftCommitmentScheme,
     decomposition_parameters::DecompositionParams,
 };
-use rand::Rng;
 
+#[cfg(feature = "swifft")]
 #[derive(Clone)]
 struct ExampleDP;
 
+#[cfg(feature = "swifft")]
 impl DecompositionParams for ExampleDP {
     const B: u128 = 1 << 15;
     const L: usize = 5;
@@ -32,7 +35,7 @@ fn main() {
     // Random SWIFFT key and commitment.
     let scheme = SwifftCommitmentScheme::rand(&mut rng);
     let digest = witness
-        .swifft_commit(&scheme)
+        .swifft_commit::<ExampleDP>(&scheme)
         .expect("SWIFFT commit should succeed");
 
     println!(
