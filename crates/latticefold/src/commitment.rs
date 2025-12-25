@@ -13,7 +13,7 @@ mod digest;
 mod swifft;
 mod traits;
 pub use backend::CommitmentBackend;
-pub use digest::CommitmentDigest;
+pub use digest::{CommitmentDigest, CommitmentDigestRef};
 pub use commitment_scheme::*;
 pub use homomorphic_commitment::*;
 #[cfg(feature = "swifft")]

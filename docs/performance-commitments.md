@@ -32,6 +32,11 @@ SWIFFT-only microbench:
 SWIFFT_BENCH=1 cargo bench --features swifft --bench swifft -- --warm-up-time 1 --measurement-time 3
 ```
 
+SWIFFT backend + transcript absorption:
+```bash
+SWIFFT_BENCH=1 cargo bench --features swifft --bench swifft_backend -- --warm-up-time 1 --measurement-time 3
+```
+
 Environment flags:
 - `BACKEND_BENCH=0` skips `commit_backend`.
 - `SWIFFT_BENCH=0` skips SWIFFT benches even when the feature is enabled.

@@ -14,6 +14,13 @@ pub enum CommitmentDigest<NTT: Ring> {
     Swifft(SwifftCommitment),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CommitmentDigestRef<'a, NTT: Ring> {
+    Ajtai(&'a Commitment<NTT>),
+    #[cfg(feature = "swifft")]
+    Swifft(&'a SwifftCommitment),
+}
+
 impl<NTT: Ring> CommitmentDigest<NTT> {
     pub fn to_bytes(&self) -> Result<Vec<u8>, CommitmentError>
     where
@@ -45,5 +52,23 @@ impl<NTT: Ring> CommitmentDigest<NTT> {
             }
         }
         Ok(())
+    }
+}
+
+impl<'a, NTT: Ring> CommitmentDigestRef<'a, NTT> {
+    pub fn absorb_into<T>(&self, transcript: &mut T)
+    where
+        NTT: OverField,
+        T: Transcript<NTT>,
+    {
+        match self {
+            CommitmentDigestRef::Ajtai(commitment) => {
+                transcript.absorb_slice(commitment.as_ref());
+            }
+            #[cfg(feature = "swifft")]
+            CommitmentDigestRef::Swifft(commitment) => {
+                transcript.absorb_bytes(commitment.as_bytes());
+            }
+        }
     }
 }

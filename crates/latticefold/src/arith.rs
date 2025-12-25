@@ -651,6 +651,26 @@ pub mod tests {
         assert_eq!(first.as_bytes(), second.as_bytes());
     }
 
+    #[cfg(feature = "swifft")]
+    #[test]
+    fn swifft_commit_matches_test_vector() {
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = SwifftCommitmentScheme::new(Key::from([7u8; KEY_LEN]));
+
+        let commit = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
+
+        const EXPECTED: [u8; STATE_LEN] = [
+            237, 177, 9, 33, 197, 137, 227, 193, 218, 161, 160, 102, 7, 53, 83,
+            75, 166, 208, 68, 136, 69, 113, 81, 156, 125, 4, 180, 194, 190,
+            114, 153, 251, 161, 144, 249, 89, 211, 170, 108, 181, 104, 29,
+            228, 206, 194, 93, 195, 240, 233, 171, 85, 209, 146, 23, 221, 80,
+            207, 172, 128, 116, 229, 238, 55, 53, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        assert_eq!(commit.as_bytes(), &EXPECTED);
+    }
+
     #[test]
     fn backend_commit_returns_ajtai_variant() {
         let mut rng = ark_std::test_rng();
