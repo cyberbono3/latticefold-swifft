@@ -1,21 +1,30 @@
-#![cfg(feature = "swifft")]
-
 //! Minimal example showing how to hash a witness with SWIFFT.
 
 use ark_std::test_rng;
 use latticefold::{
     arith::Witness, commitment::SwifftCommitmentScheme,
-    decomposition_parameters::test_params::GoldilocksDP,
+    decomposition_parameters::DecompositionParams,
 };
 use rand::Rng;
 
+#[derive(Clone)]
+struct ExampleDP;
+
+impl DecompositionParams for ExampleDP {
+    const B: u128 = 1 << 15;
+    const L: usize = 5;
+    const B_SMALL: usize = 2;
+    const K: usize = 15;
+}
+
 /// Generates a random witness and produces a SWIFFT digest of its serialized CCS form.
+#[cfg(feature = "swifft")]
 fn main() {
     let mut rng = test_rng();
     const WITNESS_LEN: usize = 128;
 
     // Build a random witness.
-    let witness = Witness::<cyclotomic_rings::rings::GoldilocksRingNTT>::rand::<_, GoldilocksDP>(
+    let witness = Witness::<cyclotomic_rings::rings::GoldilocksRingNTT>::rand::<_, ExampleDP>(
         &mut rng,
         WITNESS_LEN,
     );
@@ -31,4 +40,9 @@ fn main() {
         digest.as_bytes().len(),
         digest.as_bytes()
     );
+}
+
+#[cfg(not(feature = "swifft"))]
+fn main() {
+    eprintln!("Enable the `swifft` feature to run this example.");
 }
