@@ -327,8 +327,6 @@ impl<NTT: SuitableRing> Witness<NTT> {
     where
         NTT: ark_serialize::CanonicalSerialize,
     {
-        use ark_serialize::CanonicalSerialize;
-
         let mut buf = Vec::new();
         buf.extend_from_slice(b"latticefold:swifft:witness:v1");
 
@@ -486,7 +484,7 @@ pub mod tests {
         Ring,
     };
     #[cfg(feature = "swifft")]
-    use swifft::STATE_LEN;
+    use swifft::{Key, KEY_LEN, STATE_LEN};
 
     use super::*;
     #[cfg(feature = "swifft")]
@@ -620,6 +618,22 @@ pub mod tests {
             .swifft_commit::<GoldilocksDP>(&scheme)
             .expect("commit should succeed");
         assert_eq!(commit.as_bytes().len(), STATE_LEN);
+    }
+
+    #[cfg(feature = "swifft")]
+    #[test]
+    fn swifft_commit_is_deterministic() {
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = SwifftCommitmentScheme::new(Key::from([7u8; KEY_LEN]));
+
+        let first = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
+        let second = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
+
+        assert_eq!(first.as_bytes(), second.as_bytes());
     }
 
     #[test]

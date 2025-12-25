@@ -1,7 +1,6 @@
 #![cfg(feature = "swifft")]
 
 use ark_serialize::CanonicalSerialize;
-use rand::RngCore;
 use swifft::{Block, Key, State, BLOCK_LEN, KEY_LEN, STATE_LEN};
 
 use super::{traits::CommitmentScheme as CommitmentSchemeTrait, CommitmentError};
