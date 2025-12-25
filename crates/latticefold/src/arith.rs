@@ -322,13 +322,25 @@ impl<NTT: SuitableRing> Witness<NTT> {
 
     /// Serialize the CCS witness (`w_ccs`) for SWIFFT hashing.
     #[cfg(feature = "swifft")]
-    pub fn serialize_witness_bytes<P: DecompositionParams>(
-        &self,
-    ) -> Result<Vec<u8>, CommitmentError>
+    pub fn serialize_witness_bytes<P: DecompositionParams>(&self) -> Result<Vec<u8>, CommitmentError>
     where
         NTT: ark_serialize::CanonicalSerialize,
     {
         let mut buf = Vec::new();
+        self.serialize_witness_bytes_into::<P>(&mut buf)?;
+        Ok(buf)
+    }
+
+    /// Serialize the CCS witness into a reusable buffer for SWIFFT hashing.
+    #[cfg(feature = "swifft")]
+    pub fn serialize_witness_bytes_into<P: DecompositionParams>(
+        &self,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        buf.clear();
         buf.extend_from_slice(b"latticefold:swifft:witness:v1");
 
         let ring_name = core::any::type_name::<NTT>();
@@ -342,9 +354,9 @@ impl<NTT: SuitableRing> Witness<NTT> {
         buf.extend_from_slice(&(self.w_ccs.len() as u64).to_le_bytes());
 
         for w in &self.w_ccs {
-            w.serialize_compressed(&mut buf)?;
+            w.serialize_compressed(&mut *buf)?;
         }
-        Ok(buf)
+        Ok(())
     }
 
     /// Commit to the witness using SWIFFT by hashing its serialized form.
@@ -358,6 +370,21 @@ impl<NTT: SuitableRing> Witness<NTT> {
     {
         let bytes = self.serialize_witness_bytes::<P>()?;
         Ok(scheme.commit_bytes(&bytes))
+    }
+
+    /// Commit to the witness using SWIFFT with reusable buffers.
+    #[cfg(feature = "swifft")]
+    pub fn swifft_commit_with_buffer<P: DecompositionParams>(
+        &self,
+        scheme: &crate::commitment::SwifftCommitmentScheme,
+        buf: &mut Vec<u8>,
+        buffer: &mut crate::commitment::SwifftCommitmentBuffer,
+    ) -> Result<crate::commitment::SwifftCommitment, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        self.serialize_witness_bytes_into::<P>(buf)?;
+        Ok(scheme.commit_bytes_with_buffer(buf, buffer))
     }
 
     /// Reconstruct the original CCS witness from the Ajtai witness
@@ -669,6 +696,25 @@ pub mod tests {
             207, 172, 128, 116, 229, 238, 55, 53, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         assert_eq!(commit.as_bytes(), &EXPECTED);
+    }
+
+    #[cfg(feature = "swifft")]
+    #[test]
+    fn swifft_commit_with_buffer_matches_default() {
+        let mut rng = ark_std::test_rng();
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = SwifftCommitmentScheme::rand(&mut rng);
+        let mut buf = Vec::new();
+        let mut buffer = crate::commitment::SwifftCommitmentBuffer::default();
+
+        let direct = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
+        let buffered = wit
+            .swifft_commit_with_buffer::<GoldilocksDP>(&scheme, &mut buf, &mut buffer)
+            .expect("commit should succeed");
+
+        assert_eq!(direct.as_bytes(), buffered.as_bytes());
     }
 
     #[test]

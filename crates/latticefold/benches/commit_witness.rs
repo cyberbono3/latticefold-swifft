@@ -8,7 +8,7 @@ use latticefold::{
 };
 
 #[cfg(feature = "swifft")]
-use latticefold::commitment::SwifftCommitmentScheme;
+use latticefold::commitment::{SwifftCommitmentBuffer, SwifftCommitmentScheme};
 
 #[derive(Clone)]
 struct BenchDP;
@@ -62,9 +62,14 @@ fn bench_swifft_witness_bytes(c: &mut Criterion) {
 
     let mut rng = ark_std::test_rng();
     let mut swifft_rng = rand::thread_rng();
-    const SIZES: &[usize] = &[64, 256, 1024];
+    let mut sizes = vec![64usize, 256, 1024];
+    if let Ok(flag) = env::var("SWIFFT_LARGE") {
+        if flag == "1" {
+            sizes.extend([4096, 16384]);
+        }
+    }
 
-    for &n in SIZES {
+    for &n in &sizes {
         let witness = Witness::<cyclotomic_rings::rings::GoldilocksRingNTT>::rand::<_, BenchDP>(
             &mut rng,
             n,
@@ -73,9 +78,10 @@ fn bench_swifft_witness_bytes(c: &mut Criterion) {
             .serialize_witness_bytes::<BenchDP>()
             .expect("serialize witness should succeed");
         let scheme = SwifftCommitmentScheme::rand(&mut swifft_rng);
+        let mut buffer = SwifftCommitmentBuffer::default();
 
         c.bench_with_input(BenchmarkId::new("swifft_commit_witness_bytes", n), &n, |b, _| {
-            b.iter(|| scheme.commit_bytes(&bytes));
+            b.iter(|| scheme.commit_bytes_with_buffer(&bytes, &mut buffer));
         });
     }
 }

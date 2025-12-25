@@ -1,5 +1,7 @@
 #![cfg(feature = "swifft")]
 
+use core::mem;
+
 use ark_serialize::CanonicalSerialize;
 use swifft::{Block, Key, State, BLOCK_LEN, KEY_LEN, STATE_LEN};
 
@@ -27,6 +29,22 @@ impl AsRef<[u8]> for SwifftCommitment {
     }
 }
 
+/// Reusable buffers for SWIFFT commitments to avoid per-call allocations.
+#[derive(Clone, Debug)]
+pub struct SwifftCommitmentBuffer {
+    state: State,
+    block: Block,
+}
+
+impl Default for SwifftCommitmentBuffer {
+    fn default() -> Self {
+        Self {
+            state: State::default(),
+            block: Block::default(),
+        }
+    }
+}
+
 /// SWIFFT compression wrapper to align with the commitment interface.
 #[derive(Clone, Debug)]
 pub struct SwifftCommitmentScheme {
@@ -51,20 +69,29 @@ impl SwifftCommitmentScheme {
         &self.key
     }
 
+    /// Compress arbitrary bytes using a reusable buffer.
+    pub fn commit_bytes_with_buffer(
+        &self,
+        message: &[u8],
+        buffer: &mut SwifftCommitmentBuffer,
+    ) -> SwifftCommitment {
+        buffer.state = State::default();
+
+        for chunk in message.chunks(BLOCK_LEN) {
+            buffer.block.0.fill(0);
+            buffer.block.0[..chunk.len()].copy_from_slice(chunk);
+            buffer.state.compress(&self.key, &buffer.block);
+        }
+
+        let state = mem::replace(&mut buffer.state, State::default());
+        SwifftCommitment { state }
+    }
+
     /// Compress arbitrary bytes by chunking into 56-byte SWIFFT blocks.
     /// Currently pads the final block with zeros.
     pub fn commit_bytes(&self, message: &[u8]) -> SwifftCommitment {
-        let mut state = State::default();
-        let mut block_bytes = [0u8; BLOCK_LEN];
-
-        for chunk in message.chunks(BLOCK_LEN) {
-            block_bytes.fill(0);
-            block_bytes[..chunk.len()].copy_from_slice(chunk);
-            let block = Block::from(block_bytes);
-            state.compress(&self.key, &block);
-        }
-
-        SwifftCommitment { state }
+        let mut buffer = SwifftCommitmentBuffer::default();
+        self.commit_bytes_with_buffer(message, &mut buffer)
     }
 
     /// Commit to an object that implements `CanonicalSerialize` by serializing it.
@@ -73,8 +100,20 @@ impl SwifftCommitmentScheme {
         serializable: &S,
     ) -> Result<SwifftCommitment, CommitmentError> {
         let mut buf = Vec::new();
-        serializable.serialize_compressed(&mut buf)?;
-        Ok(self.commit_bytes(&buf))
+        let mut buffer = SwifftCommitmentBuffer::default();
+        self.commit_serialized_with_buffer(serializable, &mut buf, &mut buffer)
+    }
+
+    /// Commit to a serializable value using reusable buffers.
+    pub fn commit_serialized_with_buffer<S: CanonicalSerialize>(
+        &self,
+        serializable: &S,
+        buf: &mut Vec<u8>,
+        buffer: &mut SwifftCommitmentBuffer,
+    ) -> Result<SwifftCommitment, CommitmentError> {
+        buf.clear();
+        serializable.serialize_compressed(&mut *buf)?;
+        Ok(self.commit_bytes_with_buffer(buf, buffer))
     }
 
     /// Convenience helper to commit to a slice of serializable items.
@@ -83,10 +122,22 @@ impl SwifftCommitmentScheme {
         slice: &[S],
     ) -> Result<SwifftCommitment, CommitmentError> {
         let mut buf = Vec::new();
+        let mut buffer = SwifftCommitmentBuffer::default();
+        self.commit_serialized_slice_with_buffer(slice, &mut buf, &mut buffer)
+    }
+
+    /// Convenience helper to commit to a slice of serializable items using reusable buffers.
+    pub fn commit_serialized_slice_with_buffer<S: CanonicalSerialize>(
+        &self,
+        slice: &[S],
+        buf: &mut Vec<u8>,
+        buffer: &mut SwifftCommitmentBuffer,
+    ) -> Result<SwifftCommitment, CommitmentError> {
+        buf.clear();
         for item in slice {
-            item.serialize_compressed(&mut buf)?;
+            item.serialize_compressed(&mut *buf)?;
         }
-        Ok(self.commit_bytes(&buf))
+        Ok(self.commit_bytes_with_buffer(buf, buffer))
     }
 }
 
@@ -104,5 +155,22 @@ impl CommitmentSchemeTrait for SwifftCommitmentScheme {
 
     fn commit(&self, witness: &Self::Witness) -> Result<Self::Commitment, CommitmentError> {
         Ok(self.commit_bytes(witness))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn commit_bytes_with_buffer_matches_default() {
+        let scheme = SwifftCommitmentScheme::new(Key::from([7u8; KEY_LEN]));
+        let message = b"swifft buffer test message";
+        let mut buffer = SwifftCommitmentBuffer::default();
+
+        let from_default = scheme.commit_bytes(message);
+        let from_buffer = scheme.commit_bytes_with_buffer(message, &mut buffer);
+
+        assert_eq!(from_default.as_bytes(), from_buffer.as_bytes());
     }
 }

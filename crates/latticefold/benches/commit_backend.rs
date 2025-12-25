@@ -4,7 +4,7 @@ use ark_std::UniformRand;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use latticefold::commitment::AjtaiCommitmentScheme;
 #[cfg(feature = "swifft")]
-use latticefold::commitment::SwifftCommitmentScheme;
+use latticefold::commitment::{SwifftCommitmentBuffer, SwifftCommitmentScheme};
 #[cfg(feature = "swifft")]
 use rand::RngCore;
 
@@ -54,12 +54,13 @@ fn bench_swifft(c: &mut Criterion) {
         let mut data = vec![0u8; len];
         rng.fill_bytes(&mut data);
         let scheme = SwifftCommitmentScheme::rand(&mut rng);
+        let mut buffer = SwifftCommitmentBuffer::default();
 
         c.bench_with_input(
             BenchmarkId::new("swifft_commit_bytes", len),
             &len,
             |b, _| {
-                b.iter(|| scheme.commit_bytes(&data));
+                b.iter(|| scheme.commit_bytes_with_buffer(&data, &mut buffer));
             },
         );
     }

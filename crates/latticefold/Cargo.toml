@@ -110,3 +110,7 @@ harness = false
 [[bench]]
 name = "commit_witness"
 harness = false
+
+[[bench]]
+name = "swifft_profile"
+harness = false

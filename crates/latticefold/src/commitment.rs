@@ -17,7 +17,7 @@ pub use digest::{CommitmentDigest, CommitmentDigestRef};
 pub use commitment_scheme::*;
 pub use homomorphic_commitment::*;
 #[cfg(feature = "swifft")]
-pub use swifft::{SwifftCommitment, SwifftCommitmentScheme};
+pub use swifft::{SwifftCommitment, SwifftCommitmentBuffer, SwifftCommitmentScheme};
 pub use traits::CommitmentScheme;
 
 /// Errors that can occur in commitment operations.
