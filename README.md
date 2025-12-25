@@ -10,6 +10,8 @@ A proof-of-concept implementation of the LatticeFold and LatticeFold+ folding sc
 To run the benchmarks on your local machine, simply execute `cargo bench`. This will take around 48 hours.
 Use `cargo bench --bench` to measure relevant parts of the protocol as well as the Ajtai commitment scheme, and comment the prime fields you don't want to measure.
 
+An experimental SWIFFT-backed commitment hashing path is available behind the `swifft` feature flag. Enable it (and optionally `swifft-parallel`) to run the SWIFFT benches: `cargo bench --bench swifft --features swifft`.
+
 ## Building
 
 The [rust-toolchain](https://github.com/NethermindEth/latticefold/blob/main/rust-toolchain) file pins the version of the Rust toolchain, which the LatticeFold library builds with, to the specific version `nightly-2025-03-06`.
@@ -38,6 +40,8 @@ Available packages:
 - `latticefold`: main crate, contains the non-interactive folding scheme implementation, together with the Ajtai commitment scheme, R1CS/CCS structures, Fiat-Shamir transcript machinery, etc.
 - `latticefold-plus`: an improved version of LatticeFold. Currently a work-in-progress implementation. See [more](latticefold-plus/README.md). 
 - `cyclotomic-rings`: contains the trait definition of a ring suitable to be used in the LatticeFold protocol, a few ready-to-use rings and short challenge set machinery.
+- Optional: feature-gated SWIFFT hashing helpers and example (`examples/swifft.rs`) to hash witnesses instead of using Ajtai commitments. Enable with `--features swifft`.
+- Micro-benchmark notes for Ajtai vs SWIFFT commitments: `docs/performance-commitments.md`.
 
 ## Performance report
 The performance report for this library can be found [here](https://nethermind.notion.site/Latticefold-and-lattice-based-operations-performance-report-153360fc38d080ac930cdeeffed69559).

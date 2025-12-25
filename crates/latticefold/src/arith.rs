@@ -22,8 +22,11 @@ use self::{
 };
 use crate::{
     ark_base::*,
-    commitment::{AjtaiCommitmentScheme, Commitment, CommitmentError},
+    commitment::{
+        AjtaiCommitmentScheme, Commitment, CommitmentBackend, CommitmentDigest, CommitmentError,
+    },
     decomposition_parameters::DecompositionParams,
+    transcript::Transcript,
 };
 
 pub mod ccs;
@@ -317,6 +320,73 @@ impl<NTT: SuitableRing> Witness<NTT> {
         Self::from_f::<P>(f.into())
     }
 
+    /// Serialize the CCS witness (`w_ccs`) for SWIFFT hashing.
+    #[cfg(feature = "swifft")]
+    pub fn serialize_witness_bytes<P: DecompositionParams>(&self) -> Result<Vec<u8>, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        let mut buf = Vec::new();
+        self.serialize_witness_bytes_into::<P>(&mut buf)?;
+        Ok(buf)
+    }
+
+    /// Serialize the CCS witness into a reusable buffer for SWIFFT hashing.
+    #[cfg(feature = "swifft")]
+    pub fn serialize_witness_bytes_into<P: DecompositionParams>(
+        &self,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        buf.clear();
+        buf.extend_from_slice(b"latticefold:swifft:witness:v1");
+
+        let ring_name = core::any::type_name::<NTT>();
+        buf.extend_from_slice(&(ring_name.len() as u64).to_le_bytes());
+        buf.extend_from_slice(ring_name.as_bytes());
+
+        buf.extend_from_slice(&P::B.to_le_bytes());
+        buf.extend_from_slice(&(P::L as u64).to_le_bytes());
+        buf.extend_from_slice(&(P::B_SMALL as u64).to_le_bytes());
+        buf.extend_from_slice(&(P::K as u64).to_le_bytes());
+        buf.extend_from_slice(&(self.w_ccs.len() as u64).to_le_bytes());
+
+        for w in &self.w_ccs {
+            w.serialize_compressed(&mut *buf)?;
+        }
+        Ok(())
+    }
+
+    /// Commit to the witness using SWIFFT by hashing its serialized form.
+    #[cfg(feature = "swifft")]
+    pub fn swifft_commit<P: DecompositionParams>(
+        &self,
+        scheme: &crate::commitment::SwifftCommitmentScheme,
+    ) -> Result<crate::commitment::SwifftCommitment, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        let bytes = self.serialize_witness_bytes::<P>()?;
+        Ok(scheme.commit_bytes(&bytes))
+    }
+
+    /// Commit to the witness using SWIFFT with reusable buffers.
+    #[cfg(feature = "swifft")]
+    pub fn swifft_commit_with_buffer<P: DecompositionParams>(
+        &self,
+        scheme: &crate::commitment::SwifftCommitmentScheme,
+        buf: &mut Vec<u8>,
+        buffer: &mut crate::commitment::SwifftCommitmentBuffer,
+    ) -> Result<crate::commitment::SwifftCommitment, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        self.serialize_witness_bytes_into::<P>(buf)?;
+        Ok(scheme.commit_bytes_with_buffer(buf, buffer))
+    }
+
     /// Reconstruct the original CCS witness from the Ajtai witness
     ///
     /// Assume that Ajtai witness has bound B.
@@ -359,6 +429,31 @@ impl<NTT: SuitableRing> Witness<NTT> {
         ajtai: &AjtaiCommitmentScheme<NTT>,
     ) -> Result<Commitment<NTT>, CommitmentError> {
         ajtai.commit_ntt(&self.f)
+    }
+
+    /// Commit to the witness using a backend selector (Ajtai or SWIFFT).
+    pub fn commit_with_backend<P: DecompositionParams>(
+        &self,
+        backend: CommitmentBackend<'_, NTT>,
+    ) -> Result<CommitmentDigest<NTT>, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        backend.commit::<P>(self)
+    }
+
+    /// Commit to the witness using a backend selector and absorb into a transcript.
+    pub fn commit_with_backend_and_absorb<P: DecompositionParams>(
+        &self,
+        backend: CommitmentBackend<'_, NTT>,
+        transcript: &mut impl Transcript<NTT>,
+    ) -> Result<CommitmentDigest<NTT>, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        let digest = backend.commit::<P>(self)?;
+        digest.absorb_into(transcript)?;
+        Ok(digest)
     }
 
     /// Takes the `f_hat` value.
@@ -426,11 +521,19 @@ pub mod tests {
     use cyclotomic_rings::rings::{
         BabyBearRingNTT, GoldilocksRingNTT, GoldilocksRingPoly, StarkRingNTT,
     };
-    use stark_rings::cyclotomic_ring::models::goldilocks::{Fq, Fq3};
+    use stark_rings::{
+        cyclotomic_ring::models::goldilocks::{Fq, Fq3},
+        Ring,
+    };
+    #[cfg(feature = "swifft")]
+    use swifft::{Key, KEY_LEN, STATE_LEN};
 
     use super::*;
+    #[cfg(feature = "swifft")]
+    use crate::commitment::SwifftCommitmentScheme;
     use crate::{
         arith::r1cs::{get_test_r1cs, get_test_z as r1cs_get_test_z},
+        commitment::{AjtaiCommitmentScheme, CommitmentBackend, CommitmentDigest},
         decomposition_parameters::test_params::{BabyBearDP, GoldilocksDP, StarkDP},
     };
 
@@ -545,5 +648,89 @@ pub mod tests {
 
         assert!(recreated_witness.check_data::<StarkDP>());
         assert_eq!(recreated_witness, random_witness);
+    }
+
+    #[cfg(feature = "swifft")]
+    #[test]
+    fn swifft_commit_roundtrip_bytes() {
+        let mut rng = ark_std::test_rng();
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = SwifftCommitmentScheme::rand(&mut rng);
+        let commit = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
+        assert_eq!(commit.as_bytes().len(), STATE_LEN);
+    }
+
+    #[cfg(feature = "swifft")]
+    #[test]
+    fn swifft_commit_is_deterministic() {
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = SwifftCommitmentScheme::new(Key::from([7u8; KEY_LEN]));
+
+        let first = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
+        let second = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
+
+        assert_eq!(first.as_bytes(), second.as_bytes());
+    }
+
+    #[cfg(feature = "swifft")]
+    #[test]
+    fn swifft_commit_matches_test_vector() {
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = SwifftCommitmentScheme::new(Key::from([7u8; KEY_LEN]));
+
+        let commit = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
+
+        const EXPECTED: [u8; STATE_LEN] = [
+            237, 177, 9, 33, 197, 137, 227, 193, 218, 161, 160, 102, 7, 53, 83,
+            75, 166, 208, 68, 136, 69, 113, 81, 156, 125, 4, 180, 194, 190,
+            114, 153, 251, 161, 144, 249, 89, 211, 170, 108, 181, 104, 29,
+            228, 206, 194, 93, 195, 240, 233, 171, 85, 209, 146, 23, 221, 80,
+            207, 172, 128, 116, 229, 238, 55, 53, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        assert_eq!(commit.as_bytes(), &EXPECTED);
+    }
+
+    #[cfg(feature = "swifft")]
+    #[test]
+    fn swifft_commit_with_buffer_matches_default() {
+        let mut rng = ark_std::test_rng();
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = SwifftCommitmentScheme::rand(&mut rng);
+        let mut buf = Vec::new();
+        let mut buffer = crate::commitment::SwifftCommitmentBuffer::default();
+
+        let direct = wit
+            .swifft_commit::<GoldilocksDP>(&scheme)
+            .expect("commit should succeed");
+        let buffered = wit
+            .swifft_commit_with_buffer::<GoldilocksDP>(&scheme, &mut buf, &mut buffer)
+            .expect("commit should succeed");
+
+        assert_eq!(direct.as_bytes(), buffered.as_bytes());
+    }
+
+    #[test]
+    fn backend_commit_returns_ajtai_variant() {
+        let mut rng = ark_std::test_rng();
+        let wit = Witness::<GoldilocksRingNTT>::from_w_ccs::<GoldilocksDP>(get_test_z(3));
+        let scheme = AjtaiCommitmentScheme::rand(4, wit.f.len(), &mut rng);
+        let backend = CommitmentBackend::Ajtai(&scheme);
+        let result = wit
+            .commit_with_backend::<GoldilocksDP>(backend)
+            .expect("commit succeeds");
+
+        match result {
+            CommitmentDigest::Ajtai(cm) => assert_eq!(cm.len(), scheme.kappa()),
+            #[cfg(feature = "swifft")]
+            CommitmentDigest::Swifft(_) => panic!("expected Ajtai commitment"),
+        }
     }
 }

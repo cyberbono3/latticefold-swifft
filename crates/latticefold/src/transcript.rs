@@ -27,6 +27,8 @@ pub trait Transcript<R: OverField> {
         }
     }
 
+    fn absorb_bytes(&mut self, bytes: &[u8]);
+
     fn get_challenge(&mut self) -> R::BaseRing;
 
     fn get_challenges(&mut self, n: usize) -> Vec<R::BaseRing> {

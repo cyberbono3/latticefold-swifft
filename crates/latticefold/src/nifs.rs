@@ -11,7 +11,7 @@ use stark_rings::OverField;
 use self::{decomposition::*, error::LatticefoldError, folding::*, linearization::*};
 use crate::{
     arith::{error::CSError, Witness, CCCS, CCS, LCCCS},
-    commitment::AjtaiCommitmentScheme,
+    commitment::{AjtaiCommitmentScheme, CommitmentDigestRef},
     decomposition_parameters::DecompositionParams,
     transcript::{Transcript, TranscriptWithShortChallenges},
 };
@@ -183,7 +183,7 @@ fn absorb_public_input<NTT: SuitableRing>(
 
     transcript.absorb_slice(&acc.r);
     transcript.absorb_slice(&acc.v);
-    transcript.absorb_slice(acc.cm.as_ref());
+    CommitmentDigestRef::Ajtai(&acc.cm).absorb_into(transcript);
     transcript.absorb_slice(&acc.u);
     transcript.absorb_slice(&acc.x_w);
     transcript.absorb(&acc.h);
@@ -192,6 +192,6 @@ fn absorb_public_input<NTT: SuitableRing>(
         <NTT::BaseRing as Field>::BasePrimeField::from_be_bytes_mod_order(b"cm_i"),
     ));
 
-    transcript.absorb_slice(cm_i.cm.as_ref());
+    CommitmentDigestRef::Ajtai(&cm_i.cm).absorb_into(transcript);
     transcript.absorb_slice(&cm_i.x_ccs);
 }

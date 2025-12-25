@@ -17,11 +17,15 @@ The following environment variables can be set to **enable or filter benchmarks*
 - `PROVER`
 - `VERIFIER`
 - `AJTAI`
+- `SWIFFT` (only when built with `--features swifft`)
+- `BACKEND` (bench comparing commitment backends)
 
 - `LINEARIZATION`
 - `DECOMPOSITION`
 - `FOLDING`
 - `E2E`
+- `SWIFFT_BENCH` (controls running `swifft` bench when feature is enabled)
+- `BACKEND_BENCH` (controls running backend comparison bench)
 
 > **Default Behavior**:  
 If none of the flags for a group are set, all flags are enabled by default.
@@ -39,6 +43,8 @@ The following variables control specific parameters for benchmarks. If not set, 
 - Similarly, if none of `PROVER`, `VERIFIER` and `AJTAI` is set, all benchmarks would be run, otherwise,
   only set benchmarks would be run.
 - `GOLDILOCKS`, `STARK`, `BABYBEAR` and `FROG` are used similarly.
+- `SWIFFT`/`SWIFFT_BENCH` are only respected when building with `--features swifft`; if unset, the SWIFFT bench runs by default when the feature is enabled.
+- `BACKEND`/`BACKEND_BENCH` control the backend comparison bench; if unset, it runs by default.
 
 ---
 
@@ -93,4 +99,3 @@ Numeric parameters can be used to filter benchmarks, if they are set they only b
 - L 
 - B_SMALL 
 - K
-

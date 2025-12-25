@@ -1,13 +1,24 @@
 //! Provides utility for committing to witnesses.
 
+use ark_serialize::SerializationError;
 use thiserror::Error;
 
 mod commitment_scheme;
 mod homomorphic_commitment;
 #[macro_use]
 mod operations;
+mod backend;
+mod digest;
+#[cfg(feature = "swifft")]
+mod swifft;
+mod traits;
+pub use backend::CommitmentBackend;
+pub use digest::{CommitmentDigest, CommitmentDigestRef};
 pub use commitment_scheme::*;
 pub use homomorphic_commitment::*;
+#[cfg(feature = "swifft")]
+pub use swifft::{SwifftCommitment, SwifftCommitmentBuffer, SwifftCommitmentScheme};
+pub use traits::CommitmentScheme;
 
 /// Errors that can occur in commitment operations.
 #[derive(Debug, Error)]
@@ -23,4 +34,7 @@ pub enum CommitmentError {
     /// An Ajtai matrix should have size commitment_length x witness_length.
     #[error("Ajtai matrix has dimensions: {0}x{1}, expected: {2}x{3}")]
     WrongAjtaiMatrixDimensions(usize, usize, usize, usize),
+    /// Serialization error while preparing a commitment input.
+    #[error("serialization error: {0}")]
+    Serialization(#[from] SerializationError),
 }

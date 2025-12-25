@@ -16,6 +16,8 @@ parallel = [
     "stark-rings-poly/parallel",
 ]
 getrandom = ["ark-std/getrandom"]
+swifft = ["dep:swifft", "std"]
+swifft-parallel = ["swifft", "swifft/parallel"]
 
 # dev-only
 dhat-heap = []
@@ -34,6 +36,7 @@ stark-rings = { workspace = true }
 stark-rings-linalg = { workspace = true }
 stark-rings-poly = { workspace = true }
 thiserror = { workspace = true }
+swifft = { workspace = true, optional = true }
 
 [build-dependencies]
 proc-macro2 = { workspace = true }
@@ -90,4 +93,24 @@ harness = false
 
 [[bench]]
 name = "e2e"
+harness = false
+
+[[bench]]
+name = "swifft"
+harness = false
+
+[[bench]]
+name = "commit_backend"
+harness = false
+
+[[bench]]
+name = "swifft_backend"
+harness = false
+
+[[bench]]
+name = "commit_witness"
+harness = false
+
+[[bench]]
+name = "swifft_profile"
 harness = false
