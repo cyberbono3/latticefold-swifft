@@ -12,7 +12,8 @@ These benches are deliberately small/fast; they do **not** reflect full protocol
 - Ajtai commitments remain the homomorphic commitment used in protocol folding.
 - SWIFFT is exposed as a binding digest via `CommitmentDigest` and is feature-gated.
 - SWIFFT witness hashing is domain-separated (ring type name, decomposition params, witness length).
-- Use `CommitmentDigest::absorb_into` when you need backend-agnostic transcript absorption.
+- Use `CommitmentDigest::absorb_into` (or `Witness::commit_with_backend_and_absorb`) for backend-agnostic transcript absorption.
+- Example: `cargo run --example swifft --features swifft` uses `CommitmentBackend::Swifft` and absorbs the digest into a transcript.
 
 ## How to run
 

@@ -4,9 +4,13 @@
 use ark_std::test_rng;
 #[cfg(feature = "swifft")]
 use latticefold::{
-    arith::Witness, commitment::SwifftCommitmentScheme,
+    arith::Witness,
+    commitment::{CommitmentBackend, SwifftCommitmentScheme},
     decomposition_parameters::DecompositionParams,
+    transcript::{poseidon::PoseidonTranscript, Transcript},
 };
+#[cfg(feature = "swifft")]
+use cyclotomic_rings::rings::{GoldilocksChallengeSet, GoldilocksRingNTT};
 
 #[cfg(feature = "swifft")]
 #[derive(Clone)]
@@ -27,22 +31,25 @@ fn main() {
     const WITNESS_LEN: usize = 128;
 
     // Build a random witness.
-    let witness = Witness::<cyclotomic_rings::rings::GoldilocksRingNTT>::rand::<_, ExampleDP>(
-        &mut rng,
-        WITNESS_LEN,
-    );
+    let witness = Witness::<GoldilocksRingNTT>::rand::<_, ExampleDP>(&mut rng, WITNESS_LEN);
 
-    // Random SWIFFT key and commitment.
+    // Random SWIFFT key and commitment backend.
     let scheme = SwifftCommitmentScheme::rand(&mut rng);
+    let mut transcript =
+        PoseidonTranscript::<GoldilocksRingNTT, GoldilocksChallengeSet>::default();
+    let backend = CommitmentBackend::Swifft(&scheme);
     let digest = witness
-        .swifft_commit::<ExampleDP>(&scheme)
+        .commit_with_backend_and_absorb::<ExampleDP>(backend, &mut transcript)
         .expect("SWIFFT commit should succeed");
+    let challenge = transcript.get_challenge();
+    let digest_bytes = digest.to_bytes().expect("digest bytes should be available");
 
     println!(
         "SWIFFT digest ({} bytes): {:02x?}",
-        digest.as_bytes().len(),
-        digest.as_bytes()
+        digest_bytes.len(),
+        digest_bytes
     );
+    println!("Transcript challenge: {challenge:?}");
 }
 
 #[cfg(not(feature = "swifft"))]

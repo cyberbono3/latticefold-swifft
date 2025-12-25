@@ -26,6 +26,7 @@ use crate::{
         AjtaiCommitmentScheme, Commitment, CommitmentBackend, CommitmentDigest, CommitmentError,
     },
     decomposition_parameters::DecompositionParams,
+    transcript::Transcript,
 };
 
 pub mod ccs;
@@ -412,6 +413,20 @@ impl<NTT: SuitableRing> Witness<NTT> {
         NTT: ark_serialize::CanonicalSerialize,
     {
         backend.commit::<P>(self)
+    }
+
+    /// Commit to the witness using a backend selector and absorb into a transcript.
+    pub fn commit_with_backend_and_absorb<P: DecompositionParams>(
+        &self,
+        backend: CommitmentBackend<'_, NTT>,
+        transcript: &mut impl Transcript<NTT>,
+    ) -> Result<CommitmentDigest<NTT>, CommitmentError>
+    where
+        NTT: ark_serialize::CanonicalSerialize,
+    {
+        let digest = backend.commit::<P>(self)?;
+        digest.absorb_into(transcript)?;
+        Ok(digest)
     }
 
     /// Takes the `f_hat` value.
